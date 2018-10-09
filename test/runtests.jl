@@ -1,10 +1,27 @@
 using Test
 using GFF3
 
+import BioSequences: @dna_str, FASTA
+using GenomicFeatures
+import YAML
+import BioCore.Exceptions: MissingFieldException
+import BGZFStreams
+
+function get_bio_fmt_specimens(commit="222f58c8ef3e3480f26515d99d3784b8cfcca046")
+    path = joinpath(dirname(@__FILE__), "BioFmtSpecimens")
+    if !isdir(path)
+        run(`git clone https://github.com/BioJulia/BioFmtSpecimens.git $(path)`)
+    end
+    cd(path) do
+        #run(`git checkout $(commit)`)
+    end
+    return path
+end
+
 @testset "GFF3" begin
     record = GFF3.Record()
     @test !isfilled(record)
-    @test repr(record) == "GenomicFeatures.GFF3.Record: <not filled>"
+    @test repr(record) == "GFF3.Record: <not filled>"
 
     record = GFF3.Record("CCDS1.1\tCCDS\tgene\t801943\t802434\t.\t-\t.\tNAME=LINC00115")
     @test isfilled(record)
@@ -29,7 +46,7 @@ using GFF3
     @test GFF3.attributes(record) == ["NAME" => ["LINC00115"]]
     @test GFF3.attributes(record, "NAME") == ["LINC00115"]
     @test GFF3.content(record) == "CCDS1.1\tCCDS\tgene\t801943\t802434\t.\t-\t.\tNAME=LINC00115"
-    @test startswith(repr(record), "GenomicFeatures.GFF3.Record:\n")
+    @test startswith(repr(record), "GFF3.Record:\n")
     @test string(record) == "CCDS1.1\tCCDS\tgene\t801943\t802434\t.\t-\t.\tNAME=LINC00115"
 
     record = GFF3.Record("##gff-version 3")
