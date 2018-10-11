@@ -2,3 +2,5 @@
 *.jl.*.cov
 *.jl.mem
 /test/BioFmtSpecimens
+/docs/build/
+/docs/site/
