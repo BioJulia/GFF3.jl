@@ -10,9 +10,6 @@ makedocs(
 )
 deploydocs(
     repo = "github.com/BioJulia/GFF3.jl.git",
-    julia = "0.6",
-    osname = "linux",
-    target = "build",
     deps = nothing,
     make = nothing
 )
