@@ -12,7 +12,5 @@ makedocs(
 )
 deploydocs(
     repo = "github.com/BioJulia/GFF3.jl.git",
-    deps = nothing,
-    make = nothing,
     devbranch = "develop"
 )
