@@ -1,7 +1,9 @@
 using Documenter, GFF3
 
 makedocs(
-    format = :html,
+    format = Documenter.HTML(
+        edit_branch = "develop"
+    ),
     sitename = "GFF3.jl",
     pages = [
         "Home" => "index.md",
