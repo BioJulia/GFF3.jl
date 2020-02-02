@@ -1,0 +1,4 @@
+name = "GFF3"
+uuid = "af1dc308-cb6b-11e8-32f0-31192efa90f6"
+authors = ["Ciarán O'Mara <Ciaran.OMara@utas.edu.au>"]
+version = "0.1.0"
