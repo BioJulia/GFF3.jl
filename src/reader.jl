@@ -144,9 +144,8 @@ Return true if the GFF3 stream is at its end and there is trailing FASTA data.
 function hasfasta(reader::Reader)
     if eof(reader)
         return reader.found_fasta
-    else
-        error("GFF3 file must be read until the end before any FASTA sequences can be accessed")
     end
+    error("GFF3 file must be read until the end before any FASTA sequences can be accessed")
 end
 
 """
