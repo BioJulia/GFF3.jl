@@ -1,4 +1,4 @@
-# <img src="./docs/src/assets/logo.svg" width="30%" align="right" /> GFF3.jl
+# GFF3.jl
 
 [![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 [![Latest Release](https://img.shields.io/github/release/BioJulia/GFF3.jl.svg)](https://github.com/BioJulia/GFF3.jl/releases/latest)
@@ -7,7 +7,7 @@
 [![Latest documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://biojulia.github.io/GFF3.jl/dev/)
 [![Join the chat at https://gitter.im/BioJulia/GFF3.jl](https://badges.gitter.im/BioJulia/GFF3.jl.svg)](https://gitter.im/BioJulia/GFF3.jl)
 
-> This project follows the [semver](http://semver.org) pro forma and uses the [git-flow branching model](https://nvie.com/posts/a-successful-git-branching-model/ "original blog post").
+> This project follows the [semver](http://semver.org) pro forma and uses the [git-flow branching model](https://nvie.com/posts/a-successful-git-branching-model/).
 
 ## Description
 GFF3 provides I/O and utilities for the GFF3 file format.

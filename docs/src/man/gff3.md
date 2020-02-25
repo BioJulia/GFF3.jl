@@ -1,11 +1,9 @@
 # GFF3
 
-## Description
-
 GFF3 is a text-based file format for representing genomic annotations.
 The major difference from BED is that GFF3 is more structured and can include sequences in the FASTA file format.
 
-I/O tools for GFF3 are provided from the `GenomicFeatures.GFF3` module, which exports following three types:
+The `GFF3` package supports I/O for GFF3 by providing the following three types:
 * Reader type: `GFF3.Reader`
 * Writer type: `GFF3.Writer`
 * Element type: `GFF3.Record`
@@ -20,7 +18,7 @@ See the docstring for details.
 Here is a common workflow to iterate over all records in a GFF3 file:
 ```julia
 # Import the GFF3 module.
-using GenomicFeatures
+using GFF3
 
 # Open a GFF3 file.
 reader = open(GFF3.Reader, "data.gff3")
@@ -54,7 +52,7 @@ end
 close(reader)
 ```
 
-GenomicFeatures.jl supports [tabix](http://www.htslib.org/doc/tabix.html) to retrieve records overlapping with a specific interval.
+GFF3.jl supports [tabix](http://www.htslib.org/doc/tabix.html) to retrieve records overlapping with a specific interval.
 First you need to create a block compression file from a GFF3 file using bgzip and then index it using tabix.
 ```
 cat data.gff3 | grep -v "^#" | sort -k1,1 -k4,4n | bgzip >data.gff3.bgz
@@ -63,35 +61,12 @@ tabix data.gff3.bgz  # this creates data.gff3.bgz.tbi
 
 Then you can read the block compression file as follows:
 ```julia
+# ...
+
 # Read the block compression gzip file.
 reader = GFF3.Reader("data.gff3.bgz")
 for record in eachoverlap(reader, Interval("chr1", 250_000, 300_000))
     # Each record overlap the query interval.
     # ...
 end
-```
-
-
-## API
-
-```@docs
-GenomicFeatures.GFF3.Reader
-GenomicFeatures.GFF3.directives
-GenomicFeatures.GFF3.hasfasta
-GenomicFeatures.GFF3.getfasta
-GenomicFeatures.GFF3.Writer
-GenomicFeatures.GFF3.Record
-GenomicFeatures.GFF3.isfeature
-GenomicFeatures.GFF3.isdirective
-GenomicFeatures.GFF3.iscomment
-GenomicFeatures.GFF3.seqid
-GenomicFeatures.GFF3.source
-GenomicFeatures.GFF3.featuretype
-GenomicFeatures.GFF3.seqstart
-GenomicFeatures.GFF3.seqend
-GenomicFeatures.GFF3.score
-GenomicFeatures.GFF3.strand
-GenomicFeatures.GFF3.phase
-GenomicFeatures.GFF3.attributes
-GenomicFeatures.GFF3.content
 ```
