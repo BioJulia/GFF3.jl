@@ -3,7 +3,7 @@
 
 mutable struct Reader <: BioCore.IO.AbstractReader
     state::BioCore.Ragel.State
-    index::Union{GenomicFeatures.Indexes.Tabix, Nothing}
+    index::Union{Indexes.Tabix, Nothing}
     save_directives::Bool
     targets::Vector{Symbol}
     found_fasta::Bool
@@ -15,7 +15,7 @@ mutable struct Reader <: BioCore.IO.AbstractReader
                     index=nothing,
                     save_directives::Bool=false,
                     skip_features::Bool=false, skip_directives::Bool=true, skip_comments::Bool=true)
-        if isa(index, GenomicFeatures.Indexes.Tabix) && !isa(input.source, BGZFStreams.BGZFStream)
+        if isa(index, Indexes.Tabix) && !isa(input.source, BGZFStreams.BGZFStream)
             throw(ArgumentError("not a BGZF stream"))
         end
         targets = Symbol[]
@@ -66,7 +66,7 @@ function Reader(input::IO;
                 save_directives::Bool=false,
                 skip_features::Bool=false, skip_directives::Bool=true, skip_comments::Bool=true)
     if isa(index, AbstractString)
-        index = GenomicFeatures.Indexes.Tabix(index)
+        index = Indexes.Tabix(index)
     end
     return Reader(BufferedStreams.BufferedInputStream(input), index, save_directives, skip_features, skip_directives, skip_comments)
 end
@@ -81,7 +81,7 @@ function Reader(filepath::AbstractString;
     if endswith(filepath, ".bgz")
         input = BGZFStreams.BGZFStream(filepath)
         if index == :auto
-            index = GenomicFeatures.Indexes.findtabix(filepath)
+            index = Indexes.findtabix(filepath)
         end
     else
         input = open(filepath)
@@ -121,7 +121,7 @@ function GenomicFeatures.eachoverlap(reader::Reader, interval::Interval)
     if reader.index === nothing
         throw(ArgumentError("index is null"))
     end
-    return GenomicFeatures.Indexes.TabixOverlapIterator(reader, interval)
+    return Indexes.TabixOverlapIterator(reader, interval)
 end
 
 
@@ -150,15 +150,15 @@ function hasfasta(reader::Reader)
 end
 
 """
-Return a BioSequences.FASTA.Reader initialized to parse trailing FASTA data.
+Return a FASTA.Reader initialized to parse trailing FASTA data.
 
 Throws an exception if there is no trailing FASTA, which can be checked using `hasfasta`.
 """
-function getfasta(reader::Reader)
+function getfasta(reader::Reader) #TODO: move responsibility to FASTX.jl.
     if !hasfasta(reader)
         error("GFF3 file has no FASTA data")
     end
-    return BioSequences.FASTA.Reader(reader.state.stream)
+    return FASTA.Reader(reader.state.stream)
 end
 
 const record_machine, body_machine = (function ()
