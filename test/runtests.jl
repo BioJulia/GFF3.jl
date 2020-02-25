@@ -5,8 +5,8 @@ using FASTX.FASTA
 
 import BioSequences: @dna_str
 
+using FormatSpecimens
 using GenomicFeatures
-import YAML
 import BGZFStreams
 
 import BioCore.Exceptions: MissingFieldException
@@ -21,18 +21,6 @@ import BioCore:
     seqname
 
 
-
-
-function get_bio_fmt_specimens(commit="222f58c8ef3e3480f26515d99d3784b8cfcca046")
-    path = joinpath(dirname(@__FILE__), "BioFmtSpecimens")
-    if !isdir(path)
-        run(`git clone https://github.com/BioJulia/BioFmtSpecimens.git $(path)`)
-    end
-    cd(path) do
-        #run(`git checkout $(commit)`)
-    end
-    return path
-end
 
 @testset "GFF3" begin
     record = GFF3.Record()
@@ -124,18 +112,31 @@ end
         return records == records2
     end
 
-    path = joinpath(get_bio_fmt_specimens(), "GFF3")
-    for specimen in YAML.load_file(joinpath(path, "index.yml"))
+    dir_gff3 = path_of_format("GFF3")
+
+    for specimen in list_valid_specimens("GFF3")
+
+        if hastag(specimen, "gzip")
+            # skip compressed files
+            continue
+        end
+
+        filepath = joinpath(dir_gff3, filename(specimen))
+
+        @test check_gff3_parse(filepath)
+
+    end
+
+    for specimen in list_invalid_specimens("GFF3")
+
         if "gzip" ∈ split(get(specimen, "tags", ""))
             # skip compressed files
             continue
         end
-        valid = get(specimen, "valid", true)
-        if valid
-            @test check_gff3_parse(joinpath(path, specimen["filename"]))
-        else
-            @test_throws Exception check_gff3_parse(joinpath(path, specimen["filename"]))
-        end
+
+        filepath = joinpath(dir_gff3, filename(specimen))
+
+        @test_throws Exception check_gff3_parse(filepath)
     end
 
     # no fasta
@@ -218,7 +219,7 @@ TGCATGCA
     @test [r.kind for r in GFF3.Reader(IOBuffer(test_input5), skip_directives=false, skip_comments=false)] == [:directive, :feature, :comment, :feature, :directive, :feature]
 
     @testset "eachoverlap" begin
-        path = joinpath(get_bio_fmt_specimens(), "GFF3", "TAIR10.part.gff.bgz")
+        path = joinpath(path_of_format("GFF3"), "TAIR10.part.gff.bgz")
         stream = BGZFStreams.BGZFStream(path)
         reader = GFF3.Reader(stream, index=string(path, ".tbi"))
         for (interval, n_records) in [
