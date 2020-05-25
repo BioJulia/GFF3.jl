@@ -24,7 +24,7 @@ FASTX = "1"
 GenomicFeatures = "2"
 Indexes = "0.1"
 URIParser = "0.4"
-julia = "1.1"
+julia = "1"
 
 [extras]
 BioSequences = "7e6ae17a-c86d-528c-b3b9-7f778a29fe59"

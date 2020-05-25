@@ -10,18 +10,11 @@
 > This project follows the [semver](http://semver.org) pro forma and uses the [git-flow branching model](https://nvie.com/posts/a-successful-git-branching-model/ "original blog post").
 
 ## Description
-GFF3 provides I/O and utilities for the GFF3 file format.
+The GFF3 package provides I/O and utilities for the GFF3 file format.
 
 ## Installation
-The latest version of GFF3 is made available to install through BioJulia's package registry.
-By default, Julia's package manager only includes the "General" package registry.
-
-To add the BioJulia registry from the [Julia REPL](https://docs.julialang.org/en/v1/manual/getting-started/), press `]` to enter [pkg mode](https://docs.julialang.org/en/v1/stdlib/Pkg/), then enter the following command:
-```julia
-registry add https://github.com/BioJulia/BioJuliaRegistry.git
-```
-
-After adding the registry to your configuration, you can install GFF3 while in [pkg mode](https://docs.julialang.org/en/v1/stdlib/Pkg/) with the following:
+You can install the GFF3 package from the [Julia REPL](https://docs.julialang.org/en/v1/manual/getting-started/).
+Press `]` to enter [pkg mode](https://docs.julialang.org/en/v1/stdlib/Pkg/), then enter the following command:
 ```julia
 add GFF3
 ```
