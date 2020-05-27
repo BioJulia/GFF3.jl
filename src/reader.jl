@@ -189,15 +189,15 @@ const record_machine, body_machine = (function ()
     opt = Automa.RegExp.opt
 
     feature = let
-        seqid = re"[a-zA-Z0-9.:^*$@!+_?\-|%]*"
+        seqid = re"[a-zA-Z0-9.:^*$@!+_?\-|%]+"
         seqid.actions[:enter] = [:pos]
         seqid.actions[:exit]  = [:feature_seqid]
 
-        source = re"[ -~]*"
+        source = re"[ -~]+"
         source.actions[:enter] = [:pos]
         source.actions[:exit]  = [:feature_source]
 
-        type_ = re"[ -~]*"
+        type_ = re"[ -~]+"
         type_.actions[:enter] = [:pos]
         type_.actions[:exit]  = [:feature_type_]
 
