@@ -1,8 +1,8 @@
 # GFF3 Reader
 # ===========
 
-mutable struct Reader <: BioCore.IO.AbstractReader
-    state::BioCore.Ragel.State
+mutable struct Reader <: BioGenerics.IO.AbstractReader
+    state::BioGenerics.Ragel.State
     index::Union{Indexes.Tabix, Nothing}
     save_directives::Bool
     targets::Vector{Symbol}
@@ -25,7 +25,7 @@ mutable struct Reader <: BioCore.IO.AbstractReader
         if !skip_comments
             push!(targets, :comment)
         end
-        return new(BioCore.Ragel.State(body_machine.start_state, input), index, save_directives, targets, false, Record[], 0, 0)
+        return new(BioGenerics.Ragel.State(body_machine.start_state, input), index, save_directives, targets, false, Record[], 0, 0)
     end
 end
 
@@ -85,7 +85,7 @@ function Base.eltype(::Type{<:Reader})
     return Record
 end
 
-function BioCore.IO.stream(reader::Reader)
+function BioGenerics.IO.stream(reader::Reader)
     return reader.state.stream
 end
 
@@ -97,7 +97,7 @@ function Base.close(reader::Reader)
     # make trailing directives accessable
     reader.directive_count = reader.preceding_directive_count
     reader.preceding_directive_count = 0
-    close(BioCore.IO.stream(reader))
+    close(BioGenerics.IO.stream(reader))
 end
 
 function IntervalCollection(reader::Reader)
@@ -251,14 +251,14 @@ const record_actions = Dict(
     :directive       => :(record.kind = :directive),
     :comment         => :(record.kind = :comment),
     :record          => quote
-        BioCore.ReaderHelper.resize_and_copy!(record.data, data, 1:p-1)
+        BioGenerics.ReaderHelper.resize_and_copy!(record.data, data, 1:p-1)
         record.filled = (offset+1:p-1) .- offset
     end,
     :anchor          => :(),
     :mark            => :(mark = p)
 )
 
-BioCore.ReaderHelper.generate_index_function(
+BioGenerics.ReaderHelper.generate_index_function(
     Record,
     record_machine,
     quote
@@ -267,7 +267,7 @@ BioCore.ReaderHelper.generate_index_function(
     record_actions
 ) |> eval
 
-BioCore.ReaderHelper.generate_read_function(
+BioGenerics.ReaderHelper.generate_read_function(
     Reader,
     body_machine,
     quote
@@ -276,7 +276,7 @@ BioCore.ReaderHelper.generate_read_function(
     merge(record_actions,
         Dict(
             :record => quote
-                BioCore.ReaderHelper.resize_and_copy!(record.data, data, BioCore.ReaderHelper.upanchor!(stream):p-1)
+                BioGenerics.ReaderHelper.resize_and_copy!(record.data, data, BioGenerics.ReaderHelper.upanchor!(stream):p-1)
                 record.filled = (offset+1:p-1) .- offset
                 if isfeature(record)
                     reader.directive_count = reader.preceding_directive_count
@@ -306,7 +306,7 @@ BioCore.ReaderHelper.generate_read_function(
                 end
             end,
             :countline => :(linenum += 1),
-            :anchor    => :(BioCore.ReaderHelper.anchor!(stream, p); offset = p - 1)
+            :anchor    => :(BioGenerics.ReaderHelper.anchor!(stream, p); offset = p - 1)
         )
     )
 ) |> eval
