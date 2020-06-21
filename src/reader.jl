@@ -255,23 +255,26 @@ const record_actions = Dict(
         record.filled = (offset+1:p-1) .- offset
     end,
     :anchor          => :(),
-    :mark            => :(mark = p))
-eval(
-    BioCore.ReaderHelper.generate_index_function(
-        Record,
-        record_machine,
-        quote
-            mark = offset = 0
-        end,
-        record_actions))
-eval(
-    BioCore.ReaderHelper.generate_read_function(
-        Reader,
-        body_machine,
-        quote
-            mark = offset = 0
-        end,
-        merge(record_actions, Dict(
+    :mark            => :(mark = p)
+)
+
+BioCore.ReaderHelper.generate_index_function(
+    Record,
+    record_machine,
+    quote
+        mark = offset = 0
+    end,
+    record_actions
+) |> eval
+
+BioCore.ReaderHelper.generate_read_function(
+    Reader,
+    body_machine,
+    quote
+        mark = offset = 0
+    end,
+    merge(record_actions,
+        Dict(
             :record => quote
                 BioCore.ReaderHelper.resize_and_copy!(record.data, data, BioCore.ReaderHelper.upanchor!(stream):p-1)
                 record.filled = (offset+1:p-1) .- offset
@@ -303,4 +306,7 @@ eval(
                 end
             end,
             :countline => :(linenum += 1),
-            :anchor    => :(BioCore.ReaderHelper.anchor!(stream, p); offset = p - 1)))))
+            :anchor    => :(BioCore.ReaderHelper.anchor!(stream, p); offset = p - 1)
+        )
+    )
+) |> eval
