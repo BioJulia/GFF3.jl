@@ -275,22 +275,32 @@ const record_actions = Dict(
     end
 )
 
-BioGenerics.ReaderHelper.generate_index_function(
-    Record,
+context = Automa.CodeGenContext(
+    generator = :goto,
+    checkbounds = false,
+    loopunroll = 0
+)
+
+Automa.Stream.generate_reader(
+    :index!,
     record_machine,
-    quote
-        mark = offset = 0
-    end,
-    record_actions
+    arguments = (:(record::Record),),
+    actions = record_actions,
+    context = context,
+    returncode = quote
+        if cs == 0
+            return record
+        end
+        throw(ArgumentError(string("failed to index ", eltype(record), " ~>", repr(String(data[p:min(p+7,p_end)])))))
+    end
 ) |> eval
 
-BioGenerics.ReaderHelper.generate_read_function(
-    Reader,
+
+Automa.Stream.generate_reader(
+    :readrecord!,
     body_machine,
-    quote
-        mark = offset = 0
-    end,
-    merge(record_actions,
+    arguments = (:(reader::Reader), :(record::Record)),
+    actions = merge(record_actions,
         Dict(
             :countline => :(linenum += 1),
             :record => quote
@@ -309,6 +319,7 @@ BioGenerics.ReaderHelper.generate_read_function(
                         reader.state.filled = true
                     end
                 end
+
                 if record.kind ∈ reader.targets
                     found_record = true
                     @escape
@@ -324,5 +335,39 @@ BioGenerics.ReaderHelper.generate_read_function(
                 end
             end,
         )
-    )
+    ),
+    context = context,
+    initcode = quote
+        cs = reader.state.state
+        linenum = reader.state.linenum
+        found_record = false
+    end,
+    loopcode = quote
+        if found_record
+            @goto __return__
+        end
+    end,
+    returncode = quote
+
+        reader.state.state = cs
+        # reader.state.filled |= cs == 0 # Note: if set to true, remains true.
+        reader.state.linenum = linenum
+
+        if found_record
+            return record
+        end
+
+        if cs == 0 || eof(stream)
+            throw(EOFError())
+        end
+
+        if cs < 0
+            error(eltype(Reader), " file format error on line ", linenum, " ~>", repr(String(data[p:min(p+7,p_end)])))
+        end
+
+        if p > p_eof ≥ 0
+            error("incomplete $(typeof(reader)) input on line ", linenum)
+        end
+
+    end
 ) |> eval
