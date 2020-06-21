@@ -148,6 +148,14 @@ function getfasta(reader::Reader) #TODO: move responsibility to FASTX.jl.
     return FASTA.Reader(reader.state.stream)
 end
 
+function appendfrom!(dst, dpos, src, spos, n)
+    if length(dst) < dpos + n - 1
+        resize!(dst, dpos + n - 1)
+    end
+    unsafe_copyto!(dst, dpos, src, spos, n)
+    return dst
+end
+
 const record_machine, body_machine = (function ()
     cat = Automa.RegExp.cat
     rep = Automa.RegExp.rep
@@ -251,9 +259,9 @@ const record_actions = Dict(
     :directive       => :(record.kind = :directive),
     :comment         => :(record.kind = :comment),
     :record          => quote
-        BioGenerics.ReaderHelper.resize_and_copy!(record.data, data, 1:p-1)
+        appendfrom!(record.data, 1, data, offset+1, p-1-offset)
         record.filled = (offset+1:p-1) .- offset
-    end,
+    end
     :anchor          => :(),
     :mark            => :(mark = p)
 )
@@ -276,7 +284,7 @@ BioGenerics.ReaderHelper.generate_read_function(
     merge(record_actions,
         Dict(
             :record => quote
-                BioGenerics.ReaderHelper.resize_and_copy!(record.data, data, BioGenerics.ReaderHelper.upanchor!(stream):p-1)
+                appendfrom!(record.data, 1, data, offset+1, p-1-offset)
                 record.filled = (offset+1:p-1) .- offset
                 if isfeature(record)
                     reader.directive_count = reader.preceding_directive_count
