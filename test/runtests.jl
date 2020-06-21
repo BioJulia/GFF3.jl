@@ -3,11 +3,11 @@ using Test
 using Documenter
 
 using FASTX.FASTA
+using FormatSpecimens
+using GenomicFeatures
 
 import BioSequences: @dna_str
 
-using FormatSpecimens
-using GenomicFeatures
 import BGZFStreams
 
 import BioCore.Exceptions: MissingFieldException
