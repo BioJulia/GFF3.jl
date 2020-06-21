@@ -81,7 +81,7 @@ function Reader(filepath::AbstractString; index=:auto, save_directives::Bool=fal
     return Reader(input, index=index, save_directives=save_directives, skip_features=skip_features, skip_directives=skip_directives, skip_comments=skip_comments)
 end
 
-function Base.eltype(::Type{Reader})
+function Base.eltype(::Type{<:Reader})
     return Record
 end
 
