@@ -1,6 +1,6 @@
 name = "GFF3"
 uuid = "af1dc308-cb6b-11e8-32f0-31192efa90f6"
-authors = ["Kenta Sato <bicycle1885@gmail.com>", "Daniel C. Jones <dcjones@cs.washington.edu>", "Ben J. Ward <ward9250@gmail.com>", "Ciarán O’Mara <Ciaran.OMara@utas.edu.au>"]
+authors = ["Kenta Sato <bicycle1885@gmail.com>", "Daniel C. Jones <dcjones@cs.washington.edu>", "Ben J. Ward <ward9250@gmail.com>", "Ciarán O’Mara <Ciaran.OMara@utas.edu.au>"]
 version = "0.1.0"
 
 [deps]
@@ -24,7 +24,7 @@ FASTX = "1"
 GenomicFeatures = "2"
 Indexes = "0.1"
 URIParser = "0.4"
-julia = "1.0"
+julia = "1"
 
 [extras]
 BioSequences = "7e6ae17a-c86d-528c-b3b9-7f778a29fe59"
