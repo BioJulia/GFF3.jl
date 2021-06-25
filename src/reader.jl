@@ -1,7 +1,7 @@
 # GFF3 Reader
 # ===========
 
-mutable struct Reader <: BioGenerics.IO.AbstractReader
+mutable struct Reader{S <: TranscodingStream} <: BioGenerics.IO.AbstractReader
     state::BioGenerics.Automa.State{S}
     index::Union{Indexes.Tabix, Nothing}
     save_directives::Bool
@@ -11,8 +11,9 @@ mutable struct Reader <: BioGenerics.IO.AbstractReader
     directive_count::Int
     preceding_directive_count::Int
 
-    function Reader(input::BufferedStreams.BufferedInputStream, index=nothing, save_directives::Bool=false, skip_features::Bool=false, skip_directives::Bool=true, skip_comments::Bool=true)
-        if isa(index, Indexes.Tabix) && !isa(input.source, BGZFStreams.BGZFStream)
+    function Reader(input::S, index=nothing, save_directives::Bool=false, skip_features::Bool=false, skip_directives::Bool=true, skip_comments::Bool=true) where S <: TranscodingStream
+
+        if isa(index, Indexes.Tabix) && !isa(input.stream, BGZFStreams.BGZFStream)
             throw(ArgumentError("not a BGZF stream"))
         end
         targets = Symbol[]
@@ -63,7 +64,15 @@ function Reader(input::IO; index=nothing, save_directives::Bool=false, skip_feat
     if isa(index, AbstractString)
         index = Indexes.Tabix(index)
     end
-    return Reader(BufferedStreams.BufferedInputStream(input), index, save_directives, skip_features, skip_directives, skip_comments)
+
+    if isa(input, TranscodingStream)
+        return Reader(input, index, save_directives, skip_features, skip_directives, skip_comments)
+    end
+
+    stream = TranscodingStreams.NoopStream(input)
+
+    return Reader(stream, index, save_directives, skip_features, skip_directives, skip_comments)
+
 end
 
 function Reader(filepath::AbstractString; index=:auto, save_directives::Bool=false, skip_features::Bool=false, skip_directives::Bool=true, skip_comments::Bool=true)
