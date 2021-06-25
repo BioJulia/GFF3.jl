@@ -113,6 +113,11 @@ function Base.read!(reader::Reader, record::Record)
     return readrecord!(reader.state.stream, reader, record)
 end
 
+function index!(record::Record)
+    stream = TranscodingStreams.NoopStream(IOBuffer(record.data))
+    return index!(stream, record)
+end
+
 function IntervalCollection(reader::Reader)
     intervals = collect(Interval{Record}, reader)
     return IntervalCollection(intervals, true)
