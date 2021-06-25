@@ -118,6 +118,13 @@ function index!(record::Record)
     return index!(stream, record)
 end
 
+function Base.iterate(reader::Reader, nextone::Record = Record())
+    if BioGenerics.IO.tryread!(reader, nextone) === nothing
+        return nothing
+    end
+    return copy(nextone), empty!(nextone)
+end
+
 function IntervalCollection(reader::Reader)
     intervals = collect(Interval{Record}, reader)
     return IntervalCollection(intervals, true)

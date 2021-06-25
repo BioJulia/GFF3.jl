@@ -69,7 +69,7 @@ function Base.convert(::Type{Record}, str::AbstractString)
     return Record(Vector{UInt8}(str))
 end
 
-function initialize!(record::Record)
+function Base.empty!(record::Record)
     record.filled = 1:0
     record.kind = :undefiend
     record.seqid = 1:0
