@@ -109,6 +109,10 @@ function Base.close(reader::Reader)
     close(BioGenerics.IO.stream(reader))
 end
 
+function Base.read!(reader::Reader, record::Record)
+    return readrecord!(reader.state.stream, reader, record)
+end
+
 function IntervalCollection(reader::Reader)
     intervals = collect(Interval{Record}, reader)
     return IntervalCollection(intervals, true)
