@@ -174,27 +174,27 @@ const record_machine, body_machine = (function ()
 
     feature = let
         seqid = re"[a-zA-Z0-9.:^*$@!+_?\-|%]*"
-        seqid.actions[:enter] = [:mark]
+        seqid.actions[:enter] = [:pos]
         seqid.actions[:exit]  = [:feature_seqid]
 
         source = re"[ -~]*"
-        source.actions[:enter] = [:mark]
+        source.actions[:enter] = [:pos]
         source.actions[:exit]  = [:feature_source]
 
         type_ = re"[ -~]*"
-        type_.actions[:enter] = [:mark]
+        type_.actions[:enter] = [:pos]
         type_.actions[:exit]  = [:feature_type_]
 
         start = re"[0-9]+|\."
-        start.actions[:enter] = [:mark]
+        start.actions[:enter] = [:pos]
         start.actions[:exit]  = [:feature_start]
 
         end_ = re"[0-9]+|\."
-        end_.actions[:enter] = [:mark]
+        end_.actions[:enter] = [:pos]
         end_.actions[:exit]  = [:feature_end_]
 
         score = re"[ -~]*[0-9][ -~]*|\."
-        score.actions[:enter] = [:mark]
+        score.actions[:enter] = [:pos]
         score.actions[:exit]  = [:feature_score]
 
         strand = re"[+\-?]|\."
@@ -206,7 +206,7 @@ const record_machine, body_machine = (function ()
         attributes = let
             char = re"[^=;,\t\r\n]"
             key = rep1(char)
-            key.actions[:enter] = [:mark]
+            key.actions[:enter] = [:pos]
             key.actions[:exit]  = [:feature_attribute_key]
             val = rep(char)
             attr = cat(key, '=', val, rep(cat(',', val)))
@@ -233,7 +233,7 @@ const record_machine, body_machine = (function ()
     comment.actions[:exit] = [:comment]
 
     record = alt(feature, directive, comment)
-    record.actions[:enter] = [:anchor]
+    record.actions[:enter] = [:mark]
     record.actions[:exit]  = [:record]
 
     blank = re"[ \t]*"
@@ -255,24 +255,24 @@ const record_machine, body_machine = (function ()
 end)()
 
 const record_actions = Dict(
-    :feature_seqid   => :(record.seqid  = (mark:p-1) .- offset),
-    :feature_source  => :(record.source = (mark:p-1) .- offset),
-    :feature_type_   => :(record.type_  = (mark:p-1) .- offset),
-    :feature_start   => :(record.start  = (mark:p-1) .- offset),
-    :feature_end_    => :(record.end_   = (mark:p-1) .- offset),
-    :feature_score   => :(record.score  = (mark:p-1) .- offset),
-    :feature_strand  => :(record.strand = p - offset),
-    :feature_phase   => :(record.phase  = p - offset),
-    :feature_attribute_key => :(push!(record.attribute_keys, (mark:p-1) .- offset)),
+    :mark => :(@mark),
+    :pos => :(pos = @relpos(p)),
+    :feature_seqid   => :(record.seqid  = pos:@relpos(p-1)),
+    :feature_source  => :(record.source = pos:@relpos(p-1)),
+    :feature_type_   => :(record.type_  = pos:@relpos(p-1)),
+    :feature_start   => :(record.start  = pos:@relpos(p-1)),
+    :feature_end_    => :(record.end_   = pos:@relpos(p-1)),
+    :feature_score   => :(record.score  = pos:@relpos(p-1)),
+    :feature_strand  => :(record.strand = @relpos(p)),
+    :feature_phase   => :(record.phase  = @relpos(p)),
+    :feature_attribute_key => :(push!(record.attribute_keys, pos:@relpos(p-1))),
     :feature         => :(record.kind = :feature),
     :directive       => :(record.kind = :directive),
     :comment         => :(record.kind = :comment),
     :record          => quote
-        appendfrom!(record.data, 1, data, offset+1, p-1-offset)
-        record.filled = (offset+1:p-1) .- offset
+        appendfrom!(record.data, 1, data, @markpos, p-@markpos)
+        record.filled = 1:(p-@markpos)
     end
-    :anchor          => :(),
-    :mark            => :(mark = p)
 )
 
 BioGenerics.ReaderHelper.generate_index_function(
@@ -292,9 +292,10 @@ BioGenerics.ReaderHelper.generate_read_function(
     end,
     merge(record_actions,
         Dict(
+            :countline => :(linenum += 1),
             :record => quote
-                appendfrom!(record.data, 1, data, offset+1, p-1-offset)
-                record.filled = (offset+1:p-1) .- offset
+                appendfrom!(record.data, 1, data, @markpos, p-@markpos)
+                record.filled = 1:(p-@markpos)
                 if isfeature(record)
                     reader.directive_count = reader.preceding_directive_count
                     reader.preceding_directive_count = 0
@@ -322,8 +323,6 @@ BioGenerics.ReaderHelper.generate_read_function(
                     @goto exit
                 end
             end,
-            :countline => :(linenum += 1),
-            :anchor    => :(BioGenerics.ReaderHelper.anchor!(stream, p); offset = p - 1)
         )
     )
 ) |> eval

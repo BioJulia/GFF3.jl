@@ -10,6 +10,8 @@ using TranscodingStreams
 
 import Automa
 import Automa.RegExp: @re_str
+import Automa.Stream: @mark, @markpos, @relpos, @abspos
+
 import BGZFStreams
 import BioGenerics.Exceptions: missingerror
 import BioSequences
