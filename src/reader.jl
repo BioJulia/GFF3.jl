@@ -2,7 +2,7 @@
 # ===========
 
 mutable struct Reader <: BioGenerics.IO.AbstractReader
-    state::BioGenerics.Ragel.State
+    state::BioGenerics.Automa.State{S}
     index::Union{Indexes.Tabix, Nothing}
     save_directives::Bool
     targets::Vector{Symbol}
@@ -25,7 +25,7 @@ mutable struct Reader <: BioGenerics.IO.AbstractReader
         if !skip_comments
             push!(targets, :comment)
         end
-        return new(BioGenerics.Ragel.State(body_machine.start_state, input), index, save_directives, targets, false, Record[], 0, 0)
+        return new{S}(BioGenerics.Automa.State(input, body_machine.start_state, 1, false), index, save_directives, targets, false, Record[], 0, 0)
     end
 end
 
@@ -90,7 +90,7 @@ function BioGenerics.IO.stream(reader::Reader)
 end
 
 function Base.eof(reader::Reader)
-    return reader.state.finished || eof(reader.state.stream)
+    return reader.state.filled || eof(reader.state.stream)
 end
 
 function Base.close(reader::Reader)
@@ -288,7 +288,7 @@ BioGenerics.ReaderHelper.generate_read_function(
                     end
                     if is_fasta_directive(record)
                         reader.found_fasta = true
-                        reader.state.finished = true
+                        reader.state.filled = true
                     end
                 end
                 if record.kind ∈ reader.targets
@@ -299,7 +299,7 @@ BioGenerics.ReaderHelper.generate_read_function(
             :body => quote
                 if data[p] == UInt8('>')
                     reader.found_fasta = true
-                    reader.state.finished = true
+                    reader.state.filled = true
                     # HACK: any better way?
                     cs = 0
                     @goto exit
