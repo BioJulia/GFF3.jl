@@ -113,9 +113,8 @@ function Base.:(==)(record1::Record, record2::Record)
         r1 = datarange(record1)
         r2 = datarange(record2)
         return length(r1) == length(r2) && memcmp(pointer(record1.data, first(r1)), pointer(record2.data, first(r2)), length(r1)) == 0
-    else
-        return isfilled(record1) == isfilled(record2) == false
     end
+    return isfilled(record1) == isfilled(record2) == false
 end
 
 function Base.copy(record::Record)
@@ -466,13 +465,14 @@ function content(record::Record)
     hi = last(datarange(record))
     if isfeature(record)
         return decode(String(record.data[lo:hi]))
-    elseif isdirective(record)
-        return decode(String(record.data[lo+2:hi]))
-    elseif iscomment(record)
-        return decode(String(record.data[lo+1:hi]))
-    else
-        @assert false
     end
+    if isdirective(record)
+        return decode(String(record.data[lo+2:hi]))
+    end
+    if iscomment(record)
+        return decode(String(record.data[lo+1:hi]))
+    end
+    @assert false
 end
 
 function is_fasta_directive(record::Record)
@@ -511,9 +511,8 @@ end
 function decode(str::String)
     if '%' ∈ str
         return URIParser.unescape(str)
-    else
-        return str
     end
+    return str
 end
 
 # Check if `str == data[range]`

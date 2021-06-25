@@ -1,12 +1,13 @@
-using Test
 using GFF3
+using Test
+using Documenter
 
 using FASTX.FASTA
+using FormatSpecimens
+using GenomicFeatures
 
 import BioSequences: @dna_str
 
-using FormatSpecimens
-using GenomicFeatures
 import BGZFStreams
 
 import BioCore.Exceptions: MissingFieldException
@@ -234,4 +235,8 @@ TGCATGCA
         end
         @test isa(GFF3.Reader(path), GFF3.Reader)
     end
+
+    # Include doctests.
+    DocMeta.setdocmeta!(GFF3, :DocTestSetup, :(using GFF3); recursive=true)
+    doctest(GFF3; manual = false)
 end

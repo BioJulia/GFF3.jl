@@ -11,10 +11,7 @@ mutable struct Reader <: BioCore.IO.AbstractReader
     directive_count::Int
     preceding_directive_count::Int
 
-    function Reader(input::BufferedStreams.BufferedInputStream,
-                    index=nothing,
-                    save_directives::Bool=false,
-                    skip_features::Bool=false, skip_directives::Bool=true, skip_comments::Bool=true)
+    function Reader(input::BufferedStreams.BufferedInputStream, index=nothing, save_directives::Bool=false, skip_features::Bool=false, skip_directives::Bool=true, skip_comments::Bool=true)
         if isa(index, Indexes.Tabix) && !isa(input.source, BGZFStreams.BGZFStream)
             throw(ArgumentError("not a BGZF stream"))
         end
@@ -61,20 +58,15 @@ Arguments
 - `skip_directives`: flag to skip directive records
 - `skip_comments`:  flag to skip comment records
 """
-function Reader(input::IO;
-                index=nothing,
-                save_directives::Bool=false,
-                skip_features::Bool=false, skip_directives::Bool=true, skip_comments::Bool=true)
+function Reader(input::IO; index=nothing, save_directives::Bool=false, skip_features::Bool=false, skip_directives::Bool=true, skip_comments::Bool=true)
+
     if isa(index, AbstractString)
         index = Indexes.Tabix(index)
     end
     return Reader(BufferedStreams.BufferedInputStream(input), index, save_directives, skip_features, skip_directives, skip_comments)
 end
 
-function Reader(filepath::AbstractString;
-                index=:auto,
-                save_directives::Bool=false,
-                skip_features::Bool=false, skip_directives::Bool=true, skip_comments::Bool=true)
+function Reader(filepath::AbstractString; index=:auto, save_directives::Bool=false, skip_features::Bool=false, skip_directives::Bool=true, skip_comments::Bool=true)
     if isa(index, Symbol) && index != :auto
         throw(ArgumentError("invalid index argument: ':$(index)'"))
     end
@@ -86,11 +78,7 @@ function Reader(filepath::AbstractString;
     else
         input = open(filepath)
     end
-    return Reader(
-        input,
-        index=index,
-        save_directives=save_directives,
-        skip_features=skip_features, skip_directives=skip_directives, skip_comments=skip_comments)
+    return Reader(input, index=index, save_directives=save_directives, skip_features=skip_features, skip_directives=skip_directives, skip_comments=skip_comments)
 end
 
 function Base.eltype(::Type{Reader})
@@ -144,9 +132,8 @@ Return true if the GFF3 stream is at its end and there is trailing FASTA data.
 function hasfasta(reader::Reader)
     if eof(reader)
         return reader.found_fasta
-    else
-        error("GFF3 file must be read until the end before any FASTA sequences can be accessed")
     end
+    error("GFF3 file must be read until the end before any FASTA sequences can be accessed")
 end
 
 """

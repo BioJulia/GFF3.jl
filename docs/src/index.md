@@ -10,18 +10,11 @@
 > This project follows the [semver](http://semver.org) pro forma and uses the [git-flow branching model](https://nvie.com/posts/a-successful-git-branching-model/).
 
 ## Description
-GFF3 provides I/O and utilities for the GFF3 file format.
+The GFF3 package provides I/O and utilities for the GFF3 file format.
 
 ## Installation
-The latest version of GFF3 is made available to install through BioJulia's package registry.
-By default, Julia's package manager only includes the "General" package registry.
-
-To add the BioJulia registry from the [Julia REPL](https://docs.julialang.org/en/v1/manual/getting-started/), press `]` to enter [pkg mode](https://docs.julialang.org/en/v1/stdlib/Pkg/), then enter the following command:
-```julia
-registry add https://github.com/BioJulia/BioJuliaRegistry.git
-```
-
-After adding the registry to your configuration, you can install GFF3 while in [pkg mode](https://docs.julialang.org/en/v1/stdlib/Pkg/) with the following:
+You can install the GFF3 package from the [Julia REPL](https://docs.julialang.org/en/v1/manual/getting-started/).
+Press `]` to enter [pkg mode](https://docs.julialang.org/en/v1/stdlib/Pkg/), then enter the following command:
 ```julia
 add GFF3
 ```
@@ -34,8 +27,8 @@ GFF3 is tested against Julia `1.X` on Linux, OS X, and Windows.
 
 **Latest build status:**
 
-[![Unit tests](https://github.com/BioJulia/GFF3.jl/workflows/Unit%20tests/badge.svg?branch=master)](https://github.com/BioJulia/GFF3.jl/actions?query=workflow%3A%22Unit+tests%22+branch%3Amaster)
-[![Documentation](https://github.com/BioJulia/GFF3.jl/workflows/Documentation/badge.svg?branch=master)](https://github.com/BioJulia/GFF3.jl/actions?query=workflow%3ADocumentation+branch%3Amaster)
+[![Unit Tests](https://github.com/BioJulia/GFF3.jl/actions/workflows/UnitTests.yml/badge.svg?branch=master)](https://github.com/BioJulia/GFF3.jl/actions/workflows/UnitTests.yml?query=branch%3Amaster)
+[![Documentation](https://github.com/BioJulia/GFF3.jl/actions/workflows/Documentation.yml/badge.svg?branch=master)](https://github.com/BioJulia/GFF3.jl/actions/workflows/Documentation.yml?query=branch%3Amaster)
 [![codecov](https://codecov.io/gh/BioJulia/GFF3.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/BioJulia/GFF3.jl)
 
 ## Contributing
