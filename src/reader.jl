@@ -1,8 +1,8 @@
 # GFF3 Reader
 # ===========
 
-mutable struct Reader <: BioCore.IO.AbstractReader
-    state::BioCore.Ragel.State
+mutable struct Reader{S <: TranscodingStream} <: BioGenerics.IO.AbstractReader
+    state::BioGenerics.Automa.State{S}
     index::Union{Indexes.Tabix, Nothing}
     save_directives::Bool
     targets::Vector{Symbol}
@@ -11,8 +11,9 @@ mutable struct Reader <: BioCore.IO.AbstractReader
     directive_count::Int
     preceding_directive_count::Int
 
-    function Reader(input::BufferedStreams.BufferedInputStream, index=nothing, save_directives::Bool=false, skip_features::Bool=false, skip_directives::Bool=true, skip_comments::Bool=true)
-        if isa(index, Indexes.Tabix) && !isa(input.source, BGZFStreams.BGZFStream)
+    function Reader(input::S, index=nothing, save_directives::Bool=false, skip_features::Bool=false, skip_directives::Bool=true, skip_comments::Bool=true) where S <: TranscodingStream
+
+        if isa(index, Indexes.Tabix) && !isa(input.stream, BGZFStreams.BGZFStream)
             throw(ArgumentError("not a BGZF stream"))
         end
         targets = Symbol[]
@@ -25,7 +26,7 @@ mutable struct Reader <: BioCore.IO.AbstractReader
         if !skip_comments
             push!(targets, :comment)
         end
-        return new(BioCore.Ragel.State(body_machine.start_state, input), index, save_directives, targets, false, Record[], 0, 0)
+        return new{S}(BioGenerics.Automa.State(input, body_machine.start_state, 1, false), index, save_directives, targets, false, Record[], 0, 0)
     end
 end
 
@@ -63,7 +64,15 @@ function Reader(input::IO; index=nothing, save_directives::Bool=false, skip_feat
     if isa(index, AbstractString)
         index = Indexes.Tabix(index)
     end
-    return Reader(BufferedStreams.BufferedInputStream(input), index, save_directives, skip_features, skip_directives, skip_comments)
+
+    if isa(input, TranscodingStream)
+        return Reader(input, index, save_directives, skip_features, skip_directives, skip_comments)
+    end
+
+    stream = TranscodingStreams.NoopStream(input)
+
+    return Reader(stream, index, save_directives, skip_features, skip_directives, skip_comments)
+
 end
 
 function Reader(filepath::AbstractString; index=:auto, save_directives::Bool=false, skip_features::Bool=false, skip_directives::Bool=true, skip_comments::Bool=true)
@@ -85,19 +94,35 @@ function Base.eltype(::Type{<:Reader})
     return Record
 end
 
-function BioCore.IO.stream(reader::Reader)
+function BioGenerics.IO.stream(reader::Reader)
     return reader.state.stream
 end
 
 function Base.eof(reader::Reader)
-    return reader.state.finished || eof(reader.state.stream)
+    return reader.state.filled || eof(reader.state.stream)
 end
 
 function Base.close(reader::Reader)
     # make trailing directives accessable
     reader.directive_count = reader.preceding_directive_count
     reader.preceding_directive_count = 0
-    close(BioCore.IO.stream(reader))
+    close(BioGenerics.IO.stream(reader))
+end
+
+function Base.read!(reader::Reader, record::Record)
+    return readrecord!(reader.state.stream, reader, record)
+end
+
+function index!(record::Record)
+    stream = TranscodingStreams.NoopStream(IOBuffer(record.data))
+    return index!(stream, record)
+end
+
+function Base.iterate(reader::Reader, nextone::Record = Record())
+    if BioGenerics.IO.tryread!(reader, nextone) === nothing
+        return nothing
+    end
+    return copy(nextone), empty!(nextone)
 end
 
 function IntervalCollection(reader::Reader)
@@ -148,6 +173,14 @@ function getfasta(reader::Reader) #TODO: move responsibility to FASTX.jl.
     return FASTA.Reader(reader.state.stream)
 end
 
+function appendfrom!(dst, dpos, src, spos, n)
+    if length(dst) < dpos + n - 1
+        resize!(dst, dpos + n - 1)
+    end
+    unsafe_copyto!(dst, dpos, src, spos, n)
+    return dst
+end
+
 const record_machine, body_machine = (function ()
     cat = Automa.RegExp.cat
     rep = Automa.RegExp.rep
@@ -157,27 +190,27 @@ const record_machine, body_machine = (function ()
 
     feature = let
         seqid = re"[a-zA-Z0-9.:^*$@!+_?\-|%]*"
-        seqid.actions[:enter] = [:mark]
+        seqid.actions[:enter] = [:pos]
         seqid.actions[:exit]  = [:feature_seqid]
 
         source = re"[ -~]*"
-        source.actions[:enter] = [:mark]
+        source.actions[:enter] = [:pos]
         source.actions[:exit]  = [:feature_source]
 
         type_ = re"[ -~]*"
-        type_.actions[:enter] = [:mark]
+        type_.actions[:enter] = [:pos]
         type_.actions[:exit]  = [:feature_type_]
 
         start = re"[0-9]+|\."
-        start.actions[:enter] = [:mark]
+        start.actions[:enter] = [:pos]
         start.actions[:exit]  = [:feature_start]
 
         end_ = re"[0-9]+|\."
-        end_.actions[:enter] = [:mark]
+        end_.actions[:enter] = [:pos]
         end_.actions[:exit]  = [:feature_end_]
 
         score = re"[ -~]*[0-9][ -~]*|\."
-        score.actions[:enter] = [:mark]
+        score.actions[:enter] = [:pos]
         score.actions[:exit]  = [:feature_score]
 
         strand = re"[+\-?]|\."
@@ -189,7 +222,7 @@ const record_machine, body_machine = (function ()
         attributes = let
             char = re"[^=;,\t\r\n]"
             key = rep1(char)
-            key.actions[:enter] = [:mark]
+            key.actions[:enter] = [:pos]
             key.actions[:exit]  = [:feature_attribute_key]
             val = rep(char)
             attr = cat(key, '=', val, rep(cat(',', val)))
@@ -216,7 +249,7 @@ const record_machine, body_machine = (function ()
     comment.actions[:exit] = [:comment]
 
     record = alt(feature, directive, comment)
-    record.actions[:enter] = [:anchor]
+    record.actions[:enter] = [:mark]
     record.actions[:exit]  = [:record]
 
     blank = re"[ \t]*"
@@ -238,46 +271,57 @@ const record_machine, body_machine = (function ()
 end)()
 
 const record_actions = Dict(
-    :feature_seqid   => :(record.seqid  = (mark:p-1) .- offset),
-    :feature_source  => :(record.source = (mark:p-1) .- offset),
-    :feature_type_   => :(record.type_  = (mark:p-1) .- offset),
-    :feature_start   => :(record.start  = (mark:p-1) .- offset),
-    :feature_end_    => :(record.end_   = (mark:p-1) .- offset),
-    :feature_score   => :(record.score  = (mark:p-1) .- offset),
-    :feature_strand  => :(record.strand = p - offset),
-    :feature_phase   => :(record.phase  = p - offset),
-    :feature_attribute_key => :(push!(record.attribute_keys, (mark:p-1) .- offset)),
+    :mark => :(@mark),
+    :pos => :(pos = @relpos(p)),
+    :feature_seqid   => :(record.seqid  = pos:@relpos(p-1)),
+    :feature_source  => :(record.source = pos:@relpos(p-1)),
+    :feature_type_   => :(record.type_  = pos:@relpos(p-1)),
+    :feature_start   => :(record.start  = pos:@relpos(p-1)),
+    :feature_end_    => :(record.end_   = pos:@relpos(p-1)),
+    :feature_score   => :(record.score  = pos:@relpos(p-1)),
+    :feature_strand  => :(record.strand = @relpos(p)),
+    :feature_phase   => :(record.phase  = @relpos(p)),
+    :feature_attribute_key => :(push!(record.attribute_keys, pos:@relpos(p-1))),
     :feature         => :(record.kind = :feature),
     :directive       => :(record.kind = :directive),
     :comment         => :(record.kind = :comment),
     :record          => quote
-        BioCore.ReaderHelper.resize_and_copy!(record.data, data, 1:p-1)
-        record.filled = (offset+1:p-1) .- offset
-    end,
-    :anchor          => :(),
-    :mark            => :(mark = p)
+        appendfrom!(record.data, 1, data, @markpos, p-@markpos)
+        record.filled = 1:(p-@markpos)
+    end
 )
 
-BioCore.ReaderHelper.generate_index_function(
-    Record,
+context = Automa.CodeGenContext(
+    generator = :goto,
+    checkbounds = false,
+    loopunroll = 0
+)
+
+Automa.Stream.generate_reader(
+    :index!,
     record_machine,
-    quote
-        mark = offset = 0
-    end,
-    record_actions
+    arguments = (:(record::Record),),
+    actions = record_actions,
+    context = context,
+    returncode = quote
+        if cs == 0
+            return record
+        end
+        throw(ArgumentError(string("failed to index ", eltype(record), " ~>", repr(String(data[p:min(p+7,p_end)])))))
+    end
 ) |> eval
 
-BioCore.ReaderHelper.generate_read_function(
-    Reader,
+
+Automa.Stream.generate_reader(
+    :readrecord!,
     body_machine,
-    quote
-        mark = offset = 0
-    end,
-    merge(record_actions,
+    arguments = (:(reader::Reader), :(record::Record)),
+    actions = merge(record_actions,
         Dict(
+            :countline => :(linenum += 1),
             :record => quote
-                BioCore.ReaderHelper.resize_and_copy!(record.data, data, BioCore.ReaderHelper.upanchor!(stream):p-1)
-                record.filled = (offset+1:p-1) .- offset
+                appendfrom!(record.data, 1, data, @markpos, p-@markpos)
+                record.filled = 1:(p-@markpos)
                 if isfeature(record)
                     reader.directive_count = reader.preceding_directive_count
                     reader.preceding_directive_count = 0
@@ -288,9 +332,10 @@ BioCore.ReaderHelper.generate_read_function(
                     end
                     if is_fasta_directive(record)
                         reader.found_fasta = true
-                        reader.state.finished = true
+                        reader.state.filled = true
                     end
                 end
+
                 if record.kind ∈ reader.targets
                     found_record = true
                     @escape
@@ -299,14 +344,46 @@ BioCore.ReaderHelper.generate_read_function(
             :body => quote
                 if data[p] == UInt8('>')
                     reader.found_fasta = true
-                    reader.state.finished = true
+                    reader.state.filled = true
                     # HACK: any better way?
                     cs = 0
                     @goto exit
                 end
             end,
-            :countline => :(linenum += 1),
-            :anchor    => :(BioCore.ReaderHelper.anchor!(stream, p); offset = p - 1)
         )
-    )
+    ),
+    context = context,
+    initcode = quote
+        cs = reader.state.state
+        linenum = reader.state.linenum
+        found_record = false
+    end,
+    loopcode = quote
+        if found_record
+            @goto __return__
+        end
+    end,
+    returncode = quote
+
+        reader.state.state = cs
+        # reader.state.filled |= cs == 0 # Note: if set to true, remains true.
+        reader.state.linenum = linenum
+
+        if found_record
+            return record
+        end
+
+        if cs == 0 || eof(stream)
+            throw(EOFError())
+        end
+
+        if cs < 0
+            error(eltype(Reader), " file format error on line ", linenum, " ~>", repr(String(data[p:min(p+7,p_end)])))
+        end
+
+        if p > p_eof ≥ 0
+            error("incomplete $(typeof(reader)) input on line ", linenum)
+        end
+
+    end
 ) |> eval

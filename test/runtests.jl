@@ -2,6 +2,7 @@ using GFF3
 using Test
 using Documenter
 
+using BioGenerics
 using FASTX.FASTA
 using FormatSpecimens
 using GenomicFeatures
@@ -10,38 +11,28 @@ import BioSequences: @dna_str
 
 import BGZFStreams
 
-import BioCore.Exceptions: MissingFieldException
-
-import BioCore:
-    hasleftposition,
-    leftposition,
-    hasrightposition,
-    rightposition,
-    hasseqname,
-    isfilled,
-    seqname
-
+import BioGenerics.Exceptions: MissingFieldException
 
 
 @testset "GFF3" begin
     record = GFF3.Record()
-    @test !isfilled(record)
+    @test !BioGenerics.isfilled(record)
     @test repr(record) == "GFF3.Record: <not filled>"
 
     record = GFF3.Record("CCDS1.1\tCCDS\tgene\t801943\t802434\t.\t-\t.\tNAME=LINC00115")
-    @test isfilled(record)
+    @test BioGenerics.isfilled(record)
     @test GFF3.isfeature(record)
-    @test hasseqname(record)
+    @test BioGenerics.hasseqname(record)
     @test GFF3.hasseqid(record)
-    @test seqname(record) == GFF3.seqid(record) == "CCDS1.1"
+    @test BioGenerics.seqname(record) == GFF3.seqid(record) == "CCDS1.1"
     @test GFF3.hassource(record)
     @test GFF3.source(record) == "CCDS"
     @test GFF3.hasfeaturetype(record)
     @test GFF3.featuretype(record) == "gene"
-    @test GFF3.hasseqstart(record) === hasleftposition(record) === true
-    @test GFF3.seqstart(record) === leftposition(record) === 801943
-    @test GFF3.hasseqend(record) === hasrightposition(record) === true
-    @test GFF3.seqend(record) === rightposition(record) === 802434
+    @test GFF3.hasseqstart(record) === BioGenerics.hasleftposition(record) === true
+    @test GFF3.seqstart(record) === BioGenerics.leftposition(record) === 801943
+    @test GFF3.hasseqend(record) === BioGenerics.hasrightposition(record) === true
+    @test GFF3.seqend(record) === BioGenerics.rightposition(record) === 802434
     @test !GFF3.hasscore(record)
     @test_throws MissingFieldException GFF3.score(record)
     @test GFF3.hasstrand(record)
@@ -55,13 +46,13 @@ import BioCore:
     @test string(record) == "CCDS1.1\tCCDS\tgene\t801943\t802434\t.\t-\t.\tNAME=LINC00115"
 
     record = GFF3.Record("##gff-version 3")
-    @test isfilled(record)
+    @test BioGenerics.isfilled(record)
     @test GFF3.isdirective(record)
     @test GFF3.content(record) == "gff-version 3"
     @test convert(String, record) == "##gff-version 3"
 
     record = GFF3.Record("#comment")
-    @test isfilled(record)
+    @test BioGenerics.isfilled(record)
     @test GFF3.iscomment(record)
     @test GFF3.content(record) == "comment"
     @test convert(String, record) == "#comment"

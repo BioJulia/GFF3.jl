@@ -69,7 +69,7 @@ function Base.convert(::Type{Record}, str::AbstractString)
     return Record(Vector{UInt8}(str))
 end
 
-function initialize!(record::Record)
+function Base.empty!(record::Record)
     record.filled = 1:0
     record.kind = :undefiend
     record.seqid = 1:0
@@ -89,9 +89,9 @@ function Base.convert(::Type{String}, record::Record)
 end
 
 function Base.convert(::Type{Interval}, record::Record)
-    name = BioCore.seqname(record)
-    lpos = BioCore.leftposition(record)
-    rpos = BioCore.rightposition(record)
+    name = BioGenerics.seqname(record)
+    lpos = BioGenerics.leftposition(record)
+    rpos = BioGenerics.rightposition(record)
     strd = hasstrand(record) ? GenomicFeatures.strand(record) : GenomicFeatures.STRAND_BOTH
     return Interval(name, lpos, rpos, strd, record)
 end
@@ -100,7 +100,7 @@ function Base.convert(::Type{Interval{Record}}, record::Record)
     return convert(Interval, record)
 end
 
-function BioCore.isfilled(record::Record)
+function BioGenerics.isfilled(record::Record)
     return !isempty(record.filled)
 end
 
@@ -235,11 +235,11 @@ function hasseqid(record::Record)
     return record.kind == :feature && !ismissing(record, record.seqid)
 end
 
-function BioCore.seqname(record::Record)
+function BioGenerics.seqname(record::Record)
     return seqid(record)
 end
 
-function BioCore.hasseqname(record::Record)
+function BioGenerics.hasseqname(record::Record)
     return hasseqid(record)
 end
 
@@ -297,11 +297,11 @@ function hasseqstart(record::Record)
     return record.kind == :feature && !ismissing(record, record.start)
 end
 
-function BioCore.leftposition(record::Record)
+function BioGenerics.leftposition(record::Record)
     return seqstart(record)
 end
 
-function BioCore.hasleftposition(record::Record)
+function BioGenerics.hasleftposition(record::Record)
     return hasseqstart(record)
 end
 
@@ -323,11 +323,11 @@ function hasseqend(record::Record)
     return record.kind == :feature && !ismissing(record, record.end_)
 end
 
-function BioCore.rightposition(record::Record)
+function BioGenerics.rightposition(record::Record)
     return seqend(record)
 end
 
-function BioCore.hasrightposition(record::Record)
+function BioGenerics.hasrightposition(record::Record)
     return hasseqend(record)
 end
 
