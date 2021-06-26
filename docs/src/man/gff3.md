@@ -34,6 +34,30 @@ end
 close(reader)
 ```
 
+The iterator interface demonstrated above allocates an object for each record and that may be a bottleneck of reading data from a file.
+In-place reading reuses a pre-allocated object for every record and less memory allocation happens in reading:
+
+```julia
+# Import the GFF3 module.
+using GFF3
+
+# Open a GFF3 file.
+reader = open(GFF3.Reader, "data.gff3")
+
+# Pre-allocate record.
+record = GFF3.Record()
+
+# Iterate over records.
+while !eof(reader)
+    empty!(record)
+    read!(reader, record)
+    # do something
+end
+
+# Finally, close the reader.
+close(reader)
+```
+
 If you are interested in directives (which starts with '#') in addition to genomic features, you need to pass `skip_directives=false` when initializing a GFF3 constructor:
 ```julia
 # Set skip_directives to true (this is set to false by default).
