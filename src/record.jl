@@ -358,9 +358,6 @@ Get the strand of `record`.
 function strand(record::Record)
     checkfilled(record)
     checkkind(record, :feature)
-    if ismissing(record, record.strand)
-        missingerror(:strand)
-    end
     return convert(GenomicFeatures.Strand, Char(record.data[record.strand]))
 end
 
