@@ -89,7 +89,7 @@ Then you can read the block compression file as follows:
 
 # Read the block compression gzip file.
 reader = GFF3.Reader("data.gff3.bgz")
-for record in eachoverlap(reader, Interval("chr1", 250_000, 300_000))
+for record in eachoverlap(reader, GenomicInterval("chr1", 250_000, 300_000))
     # Each record overlap the query interval.
     # ...
 end

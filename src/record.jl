@@ -88,16 +88,16 @@ function Base.convert(::Type{String}, record::Record)
     return String(record.data[datarange(record)])
 end
 
-function Base.convert(::Type{Interval}, record::Record)
+function Base.convert(::Type{GenomicInterval}, record::Record)
     name = BioGenerics.seqname(record)
     lpos = BioGenerics.leftposition(record)
     rpos = BioGenerics.rightposition(record)
     strd = hasstrand(record) ? GenomicFeatures.strand(record) : GenomicFeatures.STRAND_BOTH
-    return Interval(name, lpos, rpos, strd, record)
+    return GenomicInterval(name, lpos, rpos, strd, record)
 end
 
-function Base.convert(::Type{Interval{Record}}, record::Record)
-    return convert(Interval, record)
+function Base.convert(::Type{GenomicInterval{Record}}, record::Record)
+    return convert(GenomicInterval, record)
 end
 
 function BioGenerics.isfilled(record::Record)

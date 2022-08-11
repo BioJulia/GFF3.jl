@@ -125,12 +125,12 @@ function Base.iterate(reader::Reader, nextone::Record = Record())
     return copy(nextone), empty!(nextone)
 end
 
-function IntervalCollection(reader::Reader)
-    intervals = collect(Interval{Record}, reader)
-    return IntervalCollection(intervals, true)
+function GenomicIntervalCollection(reader::Reader)
+    intervals = collect(GenomicInterval{Record}, reader)
+    return GenomicIntervalCollection(intervals, true)
 end
 
-function GenomicFeatures.eachoverlap(reader::Reader, interval::Interval)
+function GenomicFeatures.eachoverlap(reader::Reader, interval::GenomicInterval)
     if reader.index === nothing
         throw(ArgumentError("index is null"))
     end
