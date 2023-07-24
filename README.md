@@ -6,7 +6,6 @@
 [![MIT license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/BioJulia/GFF3.jl/blob/master/LICENSE)
 [![Stable documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://biojulia.github.io/GFF3.jl/stable)
 [![Latest documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://biojulia.github.io/GFF3.jl/dev/)
-[![Join the chat at https://gitter.im/BioJulia/GFF3.jl](https://badges.gitter.im/BioJulia/GFF3.jl.svg)](https://gitter.im/BioJulia/GFF3.jl)
 
 > This project follows the [semver](http://semver.org) pro forma and uses the [git-flow branching model](https://nvie.com/posts/a-successful-git-branching-model/ "original blog post").
 
@@ -67,4 +66,4 @@ Your logo will show up here with a link to your website.
 
 
 ## Questions?
-If you have a question about contributing or using BioJulia software, come on over and chat to us on [Gitter](https://gitter.im/BioJulia/General), or you can try the [Bio category of the Julia discourse site](https://discourse.julialang.org/c/domain/bio).
+If you have a question about contributing or using BioJulia software, come on over and chat to us on [the Julia Slack workspace](https://julialang.slack.com/channels/biology), or you can try the [Bio category of the Julia discourse site](https://discourse.julialang.org/c/domain/bio).
