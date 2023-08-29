@@ -14,7 +14,7 @@ TranscodingStreams = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
 URIParser = "30578b45-9adc-5946-b283-645ec420af67"
 
 [compat]
-Automa = "0.7-0.8.3"
+Automa = "0.7 - 0.8.3"
 BGZFStreams = "0.3"
 BioGenerics = "0.1"
 FASTX = "1, 2"
