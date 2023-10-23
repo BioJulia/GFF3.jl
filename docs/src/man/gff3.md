@@ -49,7 +49,6 @@ record = GFF3.Record()
 
 # Iterate over records.
 while !eof(reader)
-    empty!(record)
     read!(reader, record)
     # do something
 end
