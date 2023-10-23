@@ -110,6 +110,7 @@ function Base.close(reader::Reader)
 end
 
 function Base.read!(reader::Reader, record::Record)
+    empty!(record)
     return readrecord!(reader.state.stream, reader, record)
 end
 

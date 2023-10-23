@@ -6,6 +6,7 @@ using BioGenerics
 using FASTX.FASTA
 using FormatSpecimens
 using GenomicFeatures
+using CodecZlib
 
 import BioSequences: @dna_str
 
@@ -74,9 +75,11 @@ import BioGenerics.Exceptions: MissingFieldException
         # in-place parsing
         stream = open(GFF3.Reader, filename)
         entry = eltype(stream)()
+        records = GFF3.Record[]
         while !eof(stream)
             try
                 read!(stream, entry)
+                push!(records, copy(entry))
             catch ex
                 if isa(ex, EOFError)
                     break
@@ -86,36 +89,67 @@ import BioGenerics.Exceptions: MissingFieldException
         close(stream)
 
         # copy
-        records = GFF3.Record[]
+        records2 = GFF3.Record[]
         reader = open(GFF3.Reader, filename)
         output = IOBuffer()
         writer = GFF3.Writer(output)
         for record in reader
             write(writer, record)
-            push!(records, record)
+            push!(records2, record)
         end
         close(reader)
         flush(writer)
 
-        records2 = GFF3.Record[]
+        records3 = GFF3.Record[]
         for record in GFF3.Reader(IOBuffer(take!(output)))
+            push!(records3, record)
+        end
+        return records == records2 == records3
+    end
+
+    function check_gff3_parse_gzip(filename)
+        
+        # in-place parsing
+        stream = GFF3.Reader(GzipDecompressorStream(open(filename)))
+        record = GFF3.Record()
+        records = GFF3.Record[]
+        while !eof(stream)
+            read!(stream, record)
+            push!(records, copy(record))
+        end
+        close(stream)
+
+        # copy
+        records2 = GFF3.Record[]
+        reader = GFF3.Reader(GzipDecompressorStream(open(filename)))
+        
+        output = IOBuffer()
+        writer = GFF3.Writer(output)
+        for record in reader
+            write(writer, record)
             push!(records2, record)
         end
-        return records == records2
+        close(reader)
+        flush(writer)
+
+        records3 = GFF3.Record[]
+        for record in GFF3.Reader(IOBuffer(take!(output)))
+            push!(records3, record)
+        end
+        return records == records2 == records3
     end
 
     dir_gff3 = path_of_format("GFF3")
 
     for specimen in list_valid_specimens("GFF3")
 
-        if hastag(specimen, "gzip")
-            # skip compressed files
-            continue
-        end
-
         filepath = joinpath(dir_gff3, filename(specimen))
 
-        @test check_gff3_parse(filepath)
+        if hastag(specimen, "gzip")
+            @test check_gff3_parse_gzip(filepath)
+        else
+            @test check_gff3_parse(filepath)
+        end
 
     end
 
