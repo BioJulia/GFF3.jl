@@ -183,90 +183,84 @@ function appendfrom!(dst, dpos, src, spos, n)
 end
 
 const record_machine, body_machine = (function ()
-    cat = Automa.RegExp.cat
-    rep = Automa.RegExp.rep
-    rep1 = Automa.RegExp.rep1
-    alt = Automa.RegExp.alt
-    opt = Automa.RegExp.opt
-
     feature = let
         seqid = re"[a-zA-Z0-9.:^*$@!+_?\-|%]+"
-        seqid.actions[:enter] = [:pos]
-        seqid.actions[:exit]  = [:feature_seqid]
+        onenter!(seqid, [:pos])
+        onexit!(seqid, [:feature_seqid])
 
         source = re"[ -~]+"
-        source.actions[:enter] = [:pos]
-        source.actions[:exit]  = [:feature_source]
+        onenter!(source, [:pos])
+        onexit!(source, [:feature_source])
 
         type_ = re"[ -~]+"
-        type_.actions[:enter] = [:pos]
-        type_.actions[:exit]  = [:feature_type_]
+        onenter!(type_, [:pos])
+        onexit!(type_, [:feature_type_])
 
         start = re"[0-9]+|\."
-        start.actions[:enter] = [:pos]
-        start.actions[:exit]  = [:feature_start]
+        onenter!(start, [:pos])
+        onexit!(start, [:feature_start])
 
         end_ = re"[0-9]+|\."
-        end_.actions[:enter] = [:pos]
-        end_.actions[:exit]  = [:feature_end_]
+        onenter!(end_, [:pos])
+        onexit!(end_, [:feature_end_])
 
         score = re"[ -~]*[0-9][ -~]*|\."
-        score.actions[:enter] = [:pos]
-        score.actions[:exit]  = [:feature_score]
+        onenter!(score, [:pos])
+        onexit!(score, [:feature_score])
 
         strand = re"[+\-?]|\."
-        strand.actions[:enter] = [:feature_strand]
+        onenter!(strand, [:feature_strand])
 
         phase = re"[0-2]|\."
-        phase.actions[:enter] = [:feature_phase]
+        onenter!(phase, [:feature_phase])
 
         attributes = let
             char = re"[^=;,\t\r\n]"
             key = rep1(char)
-            key.actions[:enter] = [:pos]
-            key.actions[:exit]  = [:feature_attribute_key]
+            onenter!(key, [:pos])
+            onexit!(key, [:feature_attribute_key])
             val = rep(char)
-            attr = cat(key, '=', val, rep(cat(',', val)))
+            attr = key * '=' * val * rep(',' * val)
 
-            cat(rep(cat(attr, ';')), opt(attr))
+            rep(attr * ';') * opt(attr)
         end
 
-        cat(seqid,  '\t',
-            source, '\t',
-            type_,  '\t',
-            start,  '\t',
-            end_,   '\t',
-            score,  '\t',
-            strand, '\t',
-            phase,  '\t',
-            attributes)
+        seqid * '\t' *
+        source * '\t' *
+        type_  * '\t' *
+        start  * '\t' *
+        end_   * '\t' *
+        score  * '\t' *
+        strand * '\t' *
+        phase  * '\t' *
+        attributes
     end
-    feature.actions[:exit] = [:feature]
+    onexit!(feature, [:feature])
 
     directive = re"##[^\r\n]*"
-    directive.actions[:exit] = [:directive]
+    onexit!(directive, [:directive])
 
     comment = re"#([^#\r\n][^\r\n]*)?"
-    comment.actions[:exit] = [:comment]
+    onexit!(comment, [:comment])
 
-    record = alt(feature, directive, comment)
-    record.actions[:enter] = [:mark]
-    record.actions[:exit]  = [:record]
+    record = feature | directive | comment
+    onenter!(record, [:mark])
+    onexit!(record, [:record])
 
     blank = re"[ \t]*"
 
     newline = let
         lf = re"\n"
-        lf.actions[:enter] = [:countline]
+        onenter!(lf, [:countline])
 
-        cat(opt('\r'), lf)
+        opt('\r') * lf
     end
 
-    body = rep(cat(alt(record, blank), newline))
-    body.actions[:exit] = [:body]
+    body = rep((record | blank) * newline)
+    onexit!(body, [:body])
 
     # look-ahead of the beginning of FASTA
-    body′ = cat(body, opt('>'))
+    body′ = body * opt('>')
 
     return map(Automa.compile, (record, body′))
 end)()
@@ -292,13 +286,9 @@ const record_actions = Dict(
     end
 )
 
-context = Automa.CodeGenContext(
-    generator = :goto,
-    checkbounds = false,
-    loopunroll = 0
-)
+context = Automa.CodeGenContext(generator = :goto)
 
-Automa.Stream.generate_reader(
+Automa.generate_reader(
     :index!,
     record_machine,
     arguments = (:(record::Record),),
@@ -313,7 +303,7 @@ Automa.Stream.generate_reader(
 ) |> eval
 
 
-Automa.Stream.generate_reader(
+Automa.generate_reader(
     :readrecord!,
     body_machine,
     arguments = (:(reader::Reader), :(record::Record)),
@@ -382,7 +372,7 @@ Automa.Stream.generate_reader(
             error(eltype(Reader), " file format error on line ", linenum, " ~>", repr(String(data[p:min(p+7,p_end)])))
         end
 
-        if p > p_eof ≥ 0
+        if p > p_end && !is_eof
             error("incomplete $(typeof(reader)) input on line ", linenum)
         end
 
