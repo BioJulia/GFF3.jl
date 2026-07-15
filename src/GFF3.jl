@@ -14,7 +14,7 @@ import Automa.Stream: @mark, @markpos, @relpos, @abspos
 
 import BGZFStreams
 import BioGenerics.Exceptions: missingerror
-import GenomicFeatures: GenomicFeatures, Interval, IntervalCollection
+import GenomicFeatures: GenomicFeatures, GenomicInterval, GenomicIntervalCollection
 import URIParser
 
 include("record.jl")
