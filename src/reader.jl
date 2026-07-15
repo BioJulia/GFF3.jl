@@ -26,7 +26,7 @@ mutable struct Reader{S <: TranscodingStream} <: BioGenerics.IO.AbstractReader
         if !skip_comments
             push!(targets, :comment)
         end
-        return new{S}(BioGenerics.Automa.State(input, body_machine.start_state, 1, false), index, save_directives, targets, false, Record[], 0, 0)
+        return new{S}(BioGenerics.Automa.State(input, body_machine.start.state, 1, false), index, save_directives, targets, false, Record[], 0, 0)
     end
 end
 
