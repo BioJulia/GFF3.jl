@@ -243,6 +243,14 @@ function BioGenerics.hasseqname(record::Record)
     return hasseqid(record)
 end
 
+function BioGenerics.groupname(record::Record)
+    return seqid(record)
+end
+
+function BioGenerics.hasgroupname(record::Record)
+    return hasseqid(record)
+end
+
 """
     source(record::Record)::String
 
