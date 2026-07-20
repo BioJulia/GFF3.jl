@@ -184,41 +184,18 @@ end
 
 const record_machine, body_machine = (function ()
     feature = let
-        seqid = re"[a-zA-Z0-9.:^*$@!+_?\-|%]+"
-        onenter!(seqid, [:pos])
-        onexit!(seqid, [:feature_seqid])
-
-        source = re"[ -~]+"
-        onenter!(source, [:pos])
-        onexit!(source, [:feature_source])
-
-        type_ = re"[ -~]+"
-        onenter!(type_, [:pos])
-        onexit!(type_, [:feature_type_])
-
-        start = re"[0-9]+|\."
-        onenter!(start, [:pos])
-        onexit!(start, [:feature_start])
-
-        end_ = re"[0-9]+|\."
-        onenter!(end_, [:pos])
-        onexit!(end_, [:feature_end_])
-
-        score = re"[ -~]*[0-9][ -~]*|\."
-        onenter!(score, [:pos])
-        onexit!(score, [:feature_score])
-
-        strand = re"[+\-?]|\."
-        onenter!(strand, [:feature_strand])
-
-        phase = re"[0-2]|\."
-        onenter!(phase, [:feature_phase])
+        seqid  = onenter!(onexit!(re"[a-zA-Z0-9.:^*$@!+_?\-|%]+", :feature_seqid), :pos)
+        source = onenter!(onexit!(re"[ -~]+", :feature_source), :pos)
+        type_  = onenter!(onexit!(re"[ -~]+", :feature_type_), :pos)
+        start  = onenter!(onexit!(re"[0-9]+|\.", :feature_start), :pos)
+        end_   = onenter!(onexit!(re"[0-9]+|\.", :feature_end_), :pos)
+        score  = onenter!(onexit!(re"[ -~]*[0-9][ -~]*|\.", :feature_score), :pos)
+        strand = onenter!(re"[+\-?]|\.", :feature_strand)
+        phase  = onenter!(re"[0-2]|\.", :feature_phase)
 
         attributes = let
             char = re"[^=;,\t\r\n]"
-            key = rep1(char)
-            onenter!(key, [:pos])
-            onexit!(key, [:feature_attribute_key])
+            key = onenter!(onexit!(rep1(char), :feature_attribute_key), :pos)
             val = rep(char)
             attr = key * '=' * val * rep(',' * val)
 
@@ -235,29 +212,22 @@ const record_machine, body_machine = (function ()
         phase  * '\t' *
         attributes
     end
-    onexit!(feature, [:feature])
+    onexit!(feature, :feature)
 
-    directive = re"##[^\r\n]*"
-    onexit!(directive, [:directive])
+    directive = onexit!(re"##[^\r\n]*", :directive)
+    comment   = onexit!(re"#([^#\r\n][^\r\n]*)?", :comment)
 
-    comment = re"#([^#\r\n][^\r\n]*)?"
-    onexit!(comment, [:comment])
-
-    record = feature | directive | comment
-    onenter!(record, [:mark])
-    onexit!(record, [:record])
+    record = onenter!(onexit!(feature | directive | comment, :record), :mark)
 
     blank = re"[ \t]*"
 
     newline = let
-        lf = re"\n"
-        onenter!(lf, [:countline])
-
+        lf = onenter!(re"\n", :countline)
         opt('\r') * lf
     end
 
     body = rep((record | blank) * newline)
-    onexit!(body, [:body])
+    onexit!(body, :body)
 
     # look-ahead of the beginning of FASTA
     body′ = body * opt('>')
