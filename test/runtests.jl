@@ -69,7 +69,7 @@ import BioGenerics.Exceptions: MissingFieldException
         for interval in open(GFF3.Reader, filename)
         end
 
-        collection = IntervalCollection(open(GFF3.Reader, filename))
+        collection = GenomicIntervalCollection(open(GFF3.Reader, filename))
         @test length(collection) == num_intervals
 
         # in-place parsing
@@ -145,7 +145,7 @@ import BioGenerics.Exceptions: MissingFieldException
 
         filepath = joinpath(dir_gff3, filename(specimen))
 
-        if hastag(specimen, "gzip")
+        if hastag(specimen, "gzip") || hastag(specimen, "bgzip")
             @test check_gff3_parse_gzip(filepath)
         else
             @test check_gff3_parse(filepath)
@@ -249,9 +249,9 @@ TGCATGCA
         stream = BGZFStreams.BGZFStream(path)
         reader = GFF3.Reader(stream, index=string(path, ".tbi"))
         for (interval, n_records) in [
-                (Interval("ChrC", 1:70_000), 68),
-                (Interval("Chr4", 1:10_000),  2),
-                (Interval("ChrM", 1:30_000), 10),]
+                (GenomicInterval("ChrC", 1:70_000), 68),
+                (GenomicInterval("Chr4", 1:10_000),  2),
+                (GenomicInterval("ChrM", 1:30_000), 10),]
             n = 0
             for record in eachoverlap(reader, interval)
                 n += 1

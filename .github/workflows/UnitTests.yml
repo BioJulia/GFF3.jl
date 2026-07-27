@@ -13,19 +13,23 @@ jobs:
       fail-fast: false
       matrix:
         julia-version:
-          - '1.0' # LTS
+          - '1.6' # Min Julia
           - '1'
-        julia-arch: [x64, x86]
-        os: [ubuntu-latest, windows-latest, macOS-latest]
-        exclude:
-          - os: macOS-latest
-            julia-arch: x86
+        julia-arch: [x64]
+        os: [ubuntu-latest, windows-latest]
         experimental: [false]
         include:
           - julia-version: nightly
             julia-arch: x64
             os: ubuntu-latest
             experimental: true
+          # MacOS Aarch64 reached Tier1 support of Julia in version 1.9
+          - julia-version: '1.9'
+            os: macOS-latest
+            experimental: false
+          - julia-version: '1'
+            os: macOS-latest
+            experimental: false
 
     steps:
       - name: Checkout Repository
