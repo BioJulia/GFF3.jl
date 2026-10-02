@@ -26,7 +26,7 @@ mutable struct Reader{S <: TranscodingStream} <: BioGenerics.IO.AbstractReader
         if !skip_comments
             push!(targets, :comment)
         end
-        return new{S}(BioGenerics.Automa.State(input, body_machine.start_state, 1, false), index, save_directives, targets, false, Record[], 0, 0)
+        return new{S}(BioGenerics.Automa.State(input, body_machine.start.state, 1, false), index, save_directives, targets, false, Record[], 0, 0)
     end
 end
 
@@ -110,6 +110,7 @@ function Base.close(reader::Reader)
 end
 
 function Base.read!(reader::Reader, record::Record)
+    empty!(record)
     return readrecord!(reader.state.stream, reader, record)
 end
 
@@ -125,12 +126,12 @@ function Base.iterate(reader::Reader, nextone::Record = Record())
     return copy(nextone), empty!(nextone)
 end
 
-function IntervalCollection(reader::Reader)
-    intervals = collect(Interval{Record}, reader)
-    return IntervalCollection(intervals, true)
+function GenomicIntervalCollection(reader::Reader)
+    intervals = collect(GenomicInterval{Record}, reader)
+    return GenomicIntervalCollection(intervals, true)
 end
 
-function GenomicFeatures.eachoverlap(reader::Reader, interval::Interval)
+function GenomicFeatures.eachoverlap(reader::Reader, interval::GenomicInterval)
     if reader.index === nothing
         throw(ArgumentError("index is null"))
     end
@@ -182,90 +183,54 @@ function appendfrom!(dst, dpos, src, spos, n)
 end
 
 const record_machine, body_machine = (function ()
-    cat = Automa.RegExp.cat
-    rep = Automa.RegExp.rep
-    rep1 = Automa.RegExp.rep1
-    alt = Automa.RegExp.alt
-    opt = Automa.RegExp.opt
-
     feature = let
-        seqid = re"[a-zA-Z0-9.:^*$@!+_?\-|%]+"
-        seqid.actions[:enter] = [:pos]
-        seqid.actions[:exit]  = [:feature_seqid]
-
-        source = re"[ -~]+"
-        source.actions[:enter] = [:pos]
-        source.actions[:exit]  = [:feature_source]
-
-        type_ = re"[ -~]+"
-        type_.actions[:enter] = [:pos]
-        type_.actions[:exit]  = [:feature_type_]
-
-        start = re"[0-9]+|\."
-        start.actions[:enter] = [:pos]
-        start.actions[:exit]  = [:feature_start]
-
-        end_ = re"[0-9]+|\."
-        end_.actions[:enter] = [:pos]
-        end_.actions[:exit]  = [:feature_end_]
-
-        score = re"[ -~]*[0-9][ -~]*|\."
-        score.actions[:enter] = [:pos]
-        score.actions[:exit]  = [:feature_score]
-
-        strand = re"[+\-?]|\."
-        strand.actions[:enter] = [:feature_strand]
-
-        phase = re"[0-2]|\."
-        phase.actions[:enter] = [:feature_phase]
+        seqid  = onenter!(onexit!(re"[a-zA-Z0-9.:^*$@!+_?\-|%]+", :feature_seqid), :pos)
+        source = onenter!(onexit!(re"[ -~]+", :feature_source), :pos)
+        type_  = onenter!(onexit!(re"[ -~]+", :feature_type_), :pos)
+        start  = onenter!(onexit!(re"[0-9]+|\.", :feature_start), :pos)
+        end_   = onenter!(onexit!(re"[0-9]+|\.", :feature_end_), :pos)
+        score  = onenter!(onexit!(re"[ -~]*[0-9][ -~]*|\.", :feature_score), :pos)
+        strand = onenter!(re"[+\-?]|\.", :feature_strand)
+        phase  = onenter!(re"[0-2]|\.", :feature_phase)
 
         attributes = let
             char = re"[^=;,\t\r\n]"
-            key = rep1(char)
-            key.actions[:enter] = [:pos]
-            key.actions[:exit]  = [:feature_attribute_key]
+            key = onenter!(onexit!(rep1(char), :feature_attribute_key), :pos)
             val = rep(char)
-            attr = cat(key, '=', val, rep(cat(',', val)))
+            attr = key * '=' * val * rep(',' * val)
 
-            cat(rep(cat(attr, ';')), opt(attr))
+            rep(attr * ';') * opt(attr)
         end
 
-        cat(seqid,  '\t',
-            source, '\t',
-            type_,  '\t',
-            start,  '\t',
-            end_,   '\t',
-            score,  '\t',
-            strand, '\t',
-            phase,  '\t',
-            attributes)
+        seqid * '\t' *
+        source * '\t' *
+        type_  * '\t' *
+        start  * '\t' *
+        end_   * '\t' *
+        score  * '\t' *
+        strand * '\t' *
+        phase  * '\t' *
+        attributes
     end
-    feature.actions[:exit] = [:feature]
+    onexit!(feature, :feature)
 
-    directive = re"##[^\r\n]*"
-    directive.actions[:exit] = [:directive]
+    directive = onexit!(re"##[^\r\n]*", :directive)
+    comment   = onexit!(re"#([^#\r\n][^\r\n]*)?", :comment)
 
-    comment = re"#([^#\r\n][^\r\n]*)?"
-    comment.actions[:exit] = [:comment]
-
-    record = alt(feature, directive, comment)
-    record.actions[:enter] = [:mark]
-    record.actions[:exit]  = [:record]
+    record = onenter!(onexit!(feature | directive | comment, :record), :mark)
 
     blank = re"[ \t]*"
 
     newline = let
-        lf = re"\n"
-        lf.actions[:enter] = [:countline]
-
-        cat(opt('\r'), lf)
+        lf = onenter!(re"\n", :countline)
+        opt('\r') * lf
     end
 
-    body = rep(cat(alt(record, blank), newline))
-    body.actions[:exit] = [:body]
+    body = rep((record | blank) * newline)
+    onexit!(body, :body)
 
     # look-ahead of the beginning of FASTA
-    body′ = cat(body, opt('>'))
+    body′ = body * opt('>')
 
     return map(Automa.compile, (record, body′))
 end)()
@@ -291,13 +256,9 @@ const record_actions = Dict(
     end
 )
 
-context = Automa.CodeGenContext(
-    generator = :goto,
-    checkbounds = false,
-    loopunroll = 0
-)
+context = Automa.CodeGenContext(generator = :goto)
 
-Automa.Stream.generate_reader(
+Automa.generate_reader(
     :index!,
     record_machine,
     arguments = (:(record::Record),),
@@ -312,7 +273,7 @@ Automa.Stream.generate_reader(
 ) |> eval
 
 
-Automa.Stream.generate_reader(
+Automa.generate_reader(
     :readrecord!,
     body_machine,
     arguments = (:(reader::Reader), :(record::Record)),
@@ -381,7 +342,7 @@ Automa.Stream.generate_reader(
             error(eltype(Reader), " file format error on line ", linenum, " ~>", repr(String(data[p:min(p+7,p_end)])))
         end
 
-        if p > p_eof ≥ 0
+        if p > p_end && !is_eof
             error("incomplete $(typeof(reader)) input on line ", linenum)
         end
 

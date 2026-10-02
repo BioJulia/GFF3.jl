@@ -1,7 +1,7 @@
 name = "GFF3"
 uuid = "af1dc308-cb6b-11e8-32f0-31192efa90f6"
 authors = ["Kenta Sato <bicycle1885@gmail.com>", "Daniel C. Jones <dcjones@cs.washington.edu>", "Ben J. Ward <ward9250@gmail.com>", "Ciarán O’Mara <Ciaran.OMara@utas.edu.au>"]
-version = "0.2.3"
+version = "0.2.4"
 
 [deps]
 Automa = "67c07d97-cdcb-5c2c-af73-a7f9c32a568b"
@@ -14,21 +14,22 @@ TranscodingStreams = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
 URIParser = "30578b45-9adc-5946-b283-645ec420af67"
 
 [compat]
-Automa = "0.7, 0.8"
+Automa = "1"
 BGZFStreams = "0.3"
 BioGenerics = "0.1"
 FASTX = "1, 2"
-GenomicFeatures = "2"
-Indexes = "0.1"
-TranscodingStreams = "0.9.5"
+GenomicFeatures = "3"
+Indexes = "0.1.3"
+TranscodingStreams = "0.9.5, 0.10, 0.11"
 URIParser = "0.4"
-julia = "1"
+julia = "1.6"
 
 [extras]
 BioSequences = "7e6ae17a-c86d-528c-b3b9-7f778a29fe59"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 FormatSpecimens = "3372ea36-2a1a-11e9-3eb7-996970b6ffbd"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+CodecZlib = "944b1d66-785c-5afd-91f1-9de20f533193"
 
 [targets]
-test = ["BioSequences", "Documenter", "FormatSpecimens", "Test"]
+test = ["BioSequences", "Documenter", "FormatSpecimens", "Test", "CodecZlib"]
